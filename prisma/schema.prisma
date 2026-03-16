@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+
+  projects      Project[]
+  templateFiles TemplateFile[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  userId      String
+  companyName String
+  productName String
+  url         String?
+  status      String   @default("input") // input -> research -> generate -> select -> export -> done
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user            User              @relation(fields: [userId], references: [id])
+  collectedImages CollectedImage[]
+  researchResult  ResearchResult?
+  generatedImages GeneratedImage[]
+  productImages   ProductImage[]
+  referenceImages ReferenceImage[]
+}
+
+model CollectedImage {
+  id        String   @id @default(cuid())
+  projectId String
+  url       String
+  localPath String?
+  source    String   // "search" or "scrape"
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ResearchResult {
+  id         String   @id @default(cuid())
+  projectId  String   @unique
+  challenges String   // JSON string
+  rawContent String
+  createdAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  projectId String
+  localPath String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ReferenceImage {
+  id               String @id @default(cuid())
+  projectId        String
+  collectedImageId String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model GeneratedImage {
+  id         String   @id @default(cuid())
+  projectId  String
+  type       String   // "product" or "non-product"
+  promptUsed String
+  localPath  String
+  selected   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model TemplateFile {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "creative_quality" or "pptx_format"
+  name      String
+  filePath  String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
